@@ -20,6 +20,23 @@ class PythonBlockchain:
         'data':'Data'}
         self.chain.append(block) 
         return block
+
+    def getpreviousblock(self):
+        return self.chain[-1]
+
+    def proof_of_work(self,prev_proof):
+        new_proof = 1 
+        check_proof = False
+
+        while check_proof is False:
+            # sha256 function to implement pow
+            hash_operation =  hashlib.sha256(str(new_proof**2 - prev_proof**2 ).encode()).hexdigest()
+            
+
+
+    
+
+
         
         
 
