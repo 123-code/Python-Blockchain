@@ -1,3 +1,4 @@
+mod agent;
 mod api;
 mod blockchain;
 mod explorer;
@@ -65,6 +66,11 @@ async fn main() {
         .route("/wallet/sign", post(wallet::sign_message))
         .route("/wallet/verify", post(wallet::verify_signature))
         .route("/wallet/list", get(wallet::list_wallets))
+        // AI Agent Protocol
+        .route("/ai/schema", get(agent::get_schema))
+        .route("/ai/execute", post(agent::execute))
+        .route("/ai/batch", post(agent::batch))
+        .route("/ai/command", post(agent::command))
         .with_state(state);
 
     let addr = "0.0.0.0:8080";
@@ -74,6 +80,7 @@ async fn main() {
     println!("  L2:        POST /l2/deposit, /l2/transfer, /l2/withdraw, /l2/rollup");
     println!("  Contracts: POST /contract/deploy, /contract/call");
     println!("  Wallets:   POST /wallet/new, /wallet/sign, /wallet/verify");
+    println!("  AI Agent:  GET /ai/schema | POST /ai/command, /ai/execute, /ai/batch");
     println!("  Stats:     GET /stats, /history");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

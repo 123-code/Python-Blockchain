@@ -196,6 +196,61 @@ async function signMsg(){const r=await post('/wallet/sign',{address:$('sign-addr
 async function verifyMsg(){const r=await post('/wallet/verify',{address:$('verify-addr').value,message:$('verify-msg').value,signature:$('verify-sig').value});show($('verify-result'),r)}
 
 refresh();setInterval(refresh,3000);
+
+// ── Chat Interface ──────────────────────────────────────────
+const chatBtn=document.createElement('div');
+chatBtn.id='chat-toggle';
+chatBtn.innerHTML='&#x1F4AC;';
+chatBtn.style.cssText='position:fixed;bottom:20px;right:20px;width:52px;height:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;box-shadow:0 4px 20px rgba(59,130,246,.4);z-index:1000;transition:.2s';
+chatBtn.onmouseenter=()=>chatBtn.style.transform='scale(1.1)';
+chatBtn.onmouseleave=()=>chatBtn.style.transform='scale(1)';
+document.body.appendChild(chatBtn);
+
+const chatBox=document.createElement('div');
+chatBox.id='chat-box';
+chatBox.style.cssText='position:fixed;bottom:80px;right:20px;width:380px;max-height:500px;background:var(--card);border:1px solid var(--border);border-radius:14px;display:none;flex-direction:column;overflow:hidden;z-index:1000;box-shadow:0 8px 32px rgba(0,0,0,.5)';
+chatBox.innerHTML=`
+<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:.9rem;background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(139,92,246,.1))">
+  Blockchain Assistant <span style="font-size:.7rem;color:var(--muted);margin-left:8px">human & AI</span>
+</div>
+<div id="chat-msgs" style="flex:1;overflow-y:auto;padding:12px;max-height:340px;display:flex;flex-direction:column;gap:8px"></div>
+<div style="padding:8px;border-top:1px solid var(--border);display:flex;gap:6px">
+  <input id="chat-input" placeholder="Type a command... (try: help)" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:.82rem;font-family:var(--font)">
+  <button onclick="chatSend()" class="btn primary" style="border-radius:8px;padding:8px 14px">Send</button>
+</div>`;
+document.body.appendChild(chatBox);
+
+chatBtn.onclick=()=>{const v=chatBox.style.display;chatBox.style.display=v==='flex'?'none':'flex'};
+
+$('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')chatSend()});
+
+function addMsg(text,isUser){
+  const d=document.createElement('div');
+  d.style.cssText=`padding:8px 12px;border-radius:10px;font-size:.82rem;max-width:85%;word-break:break-word;white-space:pre-wrap;${isUser?'align-self:flex-end;background:var(--accent);color:#fff':'align-self:flex-start;background:var(--bg);border:1px solid var(--border)'}`;
+  d.textContent=text;
+  $('chat-msgs').appendChild(d);
+  $('chat-msgs').scrollTop=$('chat-msgs').scrollHeight;
+}
+
+async function chatSend(){
+  const input=$('chat-input');
+  const cmd=input.value.trim();
+  if(!cmd)return;
+  input.value='';
+  addMsg(cmd,true);
+  try{
+    const r=await post('/ai/command',{command:cmd});
+    if(r.success){
+      const txt=typeof r.result==='string'?r.result:JSON.stringify(r.result,null,2);
+      addMsg(`[${r.parsed_action}]\n${txt}`,false);
+    }else{
+      addMsg(`Error: ${r.error}`,false);
+    }
+    refresh();
+  }catch(e){addMsg('Network error: '+e.message,false)}
+}
+
+addMsg('Welcome! Type commands in natural language.\nExamples:\n  deposit 1000 to alice\n  send 100 from alice to bob\n  mine a block\n  balance of alice\n  create wallet\n  show stats\n  help',false);
 </script>
 </body>
 </html>
