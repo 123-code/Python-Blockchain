@@ -4,13 +4,17 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::blockchain::{Block, Blockchain};
+use crate::history::History;
 use crate::l2::engine::L2Engine;
 use crate::vm::contract::ContractStore;
+use crate::wallet::WalletStore;
 
 pub struct AppState {
     pub blockchain: Mutex<Blockchain>,
     pub l2: Mutex<L2Engine>,
     pub contracts: Mutex<ContractStore>,
+    pub wallets: Mutex<WalletStore>,
+    pub history: Mutex<History>,
 }
 
 pub type SharedState = Arc<AppState>;
@@ -52,7 +56,14 @@ pub async fn mine_block(
 ) -> (StatusCode, Json<MineResponse>) {
     let mut bc = state.blockchain.lock().await;
     let data = body.data.unwrap_or_else(|| "No data".into());
-    let block = bc.mine_block(data);
+    let block = bc.mine_block(data.clone());
+    let mut h = state.history.lock().await;
+    h.record(
+        "l1_mine",
+        "miner",
+        serde_json::json!({"block_index": block.index, "data": data}),
+        true,
+    );
     (
         StatusCode::CREATED,
         Json(MineResponse {

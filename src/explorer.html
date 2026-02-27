@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockchain Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--card:#131a2b;--border:#1e2a42;--accent:#3b82f6;--accent2:#8b5cf6;
+--green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#e2e8f0;--muted:#64748b;--font:'Segoe UI',system-ui,sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.5;min-height:100vh}
+a{color:var(--accent);text-decoration:none}
+.wrap{max-width:1280px;margin:0 auto;padding:16px}
+header{background:linear-gradient(135deg,#131a2b 0%,#1a1040 100%);border-bottom:1px solid var(--border);padding:12px 0}
+header .wrap{display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header .live{font-size:.75rem;color:var(--green);display:flex;align-items:center;gap:6px}
+header .live::before{content:'';width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:16px 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.stat .val{font-size:1.6rem;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.tabs{display:flex;gap:4px;margin:16px 0;flex-wrap:wrap}
+.tab{padding:8px 18px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:500;background:var(--card);border:1px solid var(--border);color:var(--muted);transition:.2s}
+.tab:hover,.tab.active{color:var(--text);border-color:var(--accent);background:rgba(59,130,246,.1)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:10px}
+.card h3{font-size:.9rem;color:var(--accent);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;padding:8px 10px;color:var(--muted);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid rgba(30,42,66,.5)}
+.mono{font-family:'Fira Code',monospace;font-size:.78rem}
+.hash{color:var(--accent);cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+.badge.l1{background:rgba(59,130,246,.15);color:var(--accent)}
+.badge.l2{background:rgba(139,92,246,.15);color:var(--accent2)}
+.badge.contract{background:rgba(34,197,94,.15);color:var(--green)}
+.badge.wallet{background:rgba(234,179,8,.15);color:var(--yellow)}
+.badge.ok{background:rgba(34,197,94,.15);color:var(--green)}
+.badge.fail{background:rgba(239,68,68,.15);color:var(--red)}
+.form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.form-row input,.form-row textarea,.form-row select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:.82rem;font-family:var(--font);flex:1;min-width:120px}
+.form-row textarea{min-height:80px;font-family:'Fira Code',monospace;font-size:.78rem}
+.btn{padding:8px 18px;border-radius:6px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;transition:.2s;white-space:nowrap}
+.btn.primary{background:var(--accent);color:#fff}.btn.primary:hover{background:#2563eb}
+.btn.purple{background:var(--accent2);color:#fff}.btn.purple:hover{background:#7c3aed}
+.btn.green{background:var(--green);color:#fff}.btn.green:hover{background:#16a34a}
+.result{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px;font-family:'Fira Code',monospace;font-size:.78rem;white-space:pre-wrap;max-height:200px;overflow-y:auto;display:none}
+.blocks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.block-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;transition:.2s}
+.block-card:hover{border-color:var(--accent)}
+.block-card .idx{font-size:1.1rem;font-weight:700;color:var(--accent)}
+.block-card .meta{font-size:.72rem;color:var(--muted);margin-top:4px}
+.block-card .data{font-size:.78rem;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{text-align:center;padding:30px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Blockchain Explorer</h1><div class="live">Live</div></div></header>
+<div class="wrap">
+<div class="stats" id="stats"></div>
+<div class="tabs">
+<div class="tab active" data-panel="chain">Chain</div>
+<div class="tab" data-panel="l2">L2 Layer</div>
+<div class="tab" data-panel="contracts">Contracts</div>
+<div class="tab" data-panel="wallets">Wallets</div>
+<div class="tab" data-panel="history">History</div>
+<div class="tab" data-panel="actions">Actions</div>
+</div>
+
+<div class="panel active" id="chain"><div class="blocks-grid" id="blocks"></div></div>
+
+<div class="panel" id="l2">
+<div class="card"><h3>Account Balances</h3><table><thead><tr><th>Account</th><th>Balance</th></tr></thead><tbody id="l2-balances"></tbody></table></div>
+<div class="card"><h3>Pending Transactions</h3><div id="l2-pending"></div></div>
+<div class="card"><h3>Rollups</h3><table><thead><tr><th>ID</th><th>Txs</th><th>L1 Block</th><th>Proof Valid</th></tr></thead><tbody id="l2-rollups"></tbody></table></div>
+</div>
+
+<div class="panel" id="contracts">
+<div id="contract-list"></div>
+<div class="empty" id="no-contracts">No contracts deployed yet</div>
+</div>
+
+<div class="panel" id="wallets">
+<div class="card"><h3>Create Wallet</h3><button class="btn primary" onclick="createWallet()">Generate Keypair</button><div class="result" id="wallet-result"></div></div>
+<div class="card"><h3>Wallets</h3><table><thead><tr><th>Address</th><th>Public Key</th></tr></thead><tbody id="wallet-list"></tbody></table></div>
+<div class="card"><h3>Sign Message</h3>
+<div class="form-row"><input id="sign-addr" placeholder="Wallet address"><input id="sign-msg" placeholder="Message"></div>
+<button class="btn purple" onclick="signMsg()">Sign</button><div class="result" id="sign-result"></div></div>
+<div class="card"><h3>Verify Signature</h3>
+<div class="form-row"><input id="verify-addr" placeholder="Wallet address"><input id="verify-msg" placeholder="Message"></div>
+<div class="form-row"><input id="verify-sig" placeholder="Signature (hex)"></div>
+<button class="btn green" onclick="verifyMsg()">Verify</button><div class="result" id="verify-result"></div></div>
+</div>
+
+<div class="panel" id="history">
+<table><thead><tr><th>ID</th><th>Time</th><th>Category</th><th>Action</th><th>Sender</th><th>Status</th></tr></thead><tbody id="history-body"></tbody></table>
+</div>
+
+<div class="panel" id="actions">
+<div class="card"><h3>Mine L1 Block</h3>
+<div class="form-row"><input id="mine-data" placeholder="Block data"></div>
+<button class="btn primary" onclick="mineBlock()">Mine</button><div class="result" id="mine-result"></div></div>
+
+<div class="card"><h3>L2 Deposit</h3>
+<div class="form-row"><input id="dep-acct" placeholder="Account"><input id="dep-amt" placeholder="Amount" type="number"></div>
+<button class="btn purple" onclick="l2Deposit()">Deposit</button><div class="result" id="dep-result"></div></div>
+
+<div class="card"><h3>L2 Transfer</h3>
+<div class="form-row"><input id="xfer-from" placeholder="From"><input id="xfer-to" placeholder="To"><input id="xfer-amt" placeholder="Amount" type="number"></div>
+<button class="btn purple" onclick="l2Transfer()">Transfer</button><div class="result" id="xfer-result"></div></div>
+
+<div class="card"><h3>Deploy Contract</h3>
+<div class="form-row"><input id="deploy-sender" placeholder="Sender"></div>
+<div class="form-row"><textarea id="deploy-code" placeholder="Assembly code (e.g. PUSH 1\nSTORE x\nHALT)"></textarea></div>
+<button class="btn green" onclick="deployContract()">Deploy</button><div class="result" id="deploy-result"></div></div>
+
+<div class="card"><h3>Call Contract</h3>
+<div class="form-row"><input id="call-addr" placeholder="Contract address"><input id="call-sender" placeholder="Sender"></div>
+<div class="form-row"><input id="call-args" placeholder="Args (comma-separated ints)"><input id="call-value" placeholder="Value" type="number" value="0"></div>
+<button class="btn green" onclick="callContract()">Call</button><div class="result" id="call-result"></div></div>
+
+<div class="card"><h3>Trigger L2 Rollup</h3>
+<button class="btn primary" onclick="doRollup()">Create Rollup</button><div class="result" id="rollup-result"></div></div>
+</div>
+</div>
+
+<script>
+const API='';
+async function j(url,opts){const r=await fetch(API+url,opts);return r.json()}
+async function post(url,body){return j(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})}
+function $(id){return document.getElementById(id)}
+function show(el,txt){el.style.display='block';el.textContent=typeof txt==='string'?txt:JSON.stringify(txt,null,2)}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+t.classList.add('active');$(t.dataset.panel).classList.add('active')}));
+
+async function refresh(){
+try{
+const[stats,chain,bal,pending,rollups,contracts,wallets,history]=await Promise.all([
+j('/stats'),j('/chain'),j('/l2/balances'),j('/l2/pending'),j('/l2/rollups'),
+j('/contract/list'),j('/wallet/list'),j('/history?limit=50')]);
+
+$('stats').innerHTML=`
+<div class="stat"><div class="val">${stats.l1_blocks}</div><div class="lbl">L1 Blocks</div></div>
+<div class="stat"><div class="val">${stats.l2_accounts}</div><div class="lbl">Accounts</div></div>
+<div class="stat"><div class="val">${stats.l2_total_value.toLocaleString()}</div><div class="lbl">L2 Value</div></div>
+<div class="stat"><div class="val">${stats.contracts}</div><div class="lbl">Contracts</div></div>
+<div class="stat"><div class="val">${stats.wallets}</div><div class="lbl">Wallets</div></div>
+<div class="stat"><div class="val">${stats.l2_rollups}</div><div class="lbl">Rollups</div></div>
+<div class="stat"><div class="val">${stats.total_transactions}</div><div class="lbl">Transactions</div></div>
+<div class="stat"><div class="val ${stats.l1_valid?'':'style="color:var(--red)"'}">${stats.l1_valid?'Valid':'Invalid'}</div><div class="lbl">Chain Status</div></div>`;
+
+$('blocks').innerHTML=chain.chain.slice().reverse().map(b=>{
+const isRollup=b.data.startsWith('L2_ROLLUP:');
+return`<div class="block-card"><div class="idx">Block #${b.index}</div>
+<div class="meta">Proof: ${b.proof} &middot; ${new Date(b.timestamp).toLocaleTimeString()}</div>
+<div class="mono hash" title="${b.hash}">${b.hash}</div>
+<div class="data">${isRollup?'<span class="badge l2">ZK Rollup</span>':b.data}</div></div>`}).join('');
+
+const balEntries=Object.entries(bal.balances);
+$('l2-balances').innerHTML=balEntries.length?balEntries.map(([k,v])=>`<tr><td class="mono">${k}</td><td>${v.toLocaleString()}</td></tr>`).join(''):'<tr><td colspan="2" class="empty">No accounts</td></tr>';
+
+$('l2-pending').innerHTML=pending.count?`<p>${pending.count} pending transaction(s)</p>`:'<p style="color:var(--muted)">No pending transactions</p>';
+
+$('l2-rollups').innerHTML=rollups.rollups.map(r=>`<tr><td>#${r.id}</td><td>${r.tx_count}</td><td>${r.l1_block_index}</td><td><span class="badge ok">Valid</span></td></tr>`).join('')||'<tr><td colspan="4" class="empty">No rollups yet</td></tr>';
+
+if(contracts.count){$('no-contracts').style.display='none';
+$('contract-list').innerHTML=contracts.contracts.map(c=>`<div class="card">
+<h3 class="mono">${c.address}</h3>
+<div style="font-size:.78rem;color:var(--muted)">Deployer: ${c.deployer} &middot; Balance: ${c.balance}</div>
+<div style="margin-top:6px;font-size:.78rem"><strong>Storage:</strong> ${Object.keys(c.storage).length?Object.entries(c.storage).map(([k,v])=>`<span class="badge l1">${k}=${v}</span>`).join(' '):'empty'}</div>
+</div>`).join('')}else{$('no-contracts').style.display='block';$('contract-list').innerHTML=''}
+
+$('wallet-list').innerHTML=wallets.wallets.map(w=>`<tr><td class="mono hash" title="${w.address}">${w.address}</td><td class="mono hash" title="${w.public_key}">${w.public_key.substring(0,24)}...</td></tr>`).join('')||'<tr><td colspan="2" class="empty">No wallets</td></tr>';
+
+$('history-body').innerHTML=history.records.map(r=>{
+const cat=r.category==='L1'?'l1':r.category==='L2'?'l2':r.category==='Contract'?'contract':'wallet';
+return`<tr><td>${r.id}</td><td style="font-size:.75rem">${new Date(r.timestamp).toLocaleTimeString()}</td>
+<td><span class="badge ${cat}">${r.category}</span></td><td>${r.action}</td>
+<td class="mono">${r.sender}</td><td><span class="badge ${r.success?'ok':'fail'}">${r.success?'OK':'Fail'}</span></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">No transactions yet</td></tr>';
+
+}catch(e){console.error(e)}}
+
+async function mineBlock(){const r=await post('/mine',{data:$('mine-data').value||'Mined from Explorer'});show($('mine-result'),r);refresh()}
+async function l2Deposit(){const r=await post('/l2/deposit',{account:$('dep-acct').value,amount:+$('dep-amt').value});show($('dep-result'),r);refresh()}
+async function l2Transfer(){const r=await post('/l2/transfer',{from:$('xfer-from').value,to:$('xfer-to').value,amount:+$('xfer-amt').value});show($('xfer-result'),r);refresh()}
+async function deployContract(){const r=await post('/contract/deploy',{sender:$('deploy-sender').value,code:$('deploy-code').value});show($('deploy-result'),r);refresh()}
+async function callContract(){const args=$('call-args').value?$('call-args').value.split(',').map(Number):[];const r=await post('/contract/call',{sender:$('call-sender').value,address:$('call-addr').value,value:+($('call-value').value||0),args});show($('call-result'),r);refresh()}
+async function doRollup(){const r=await post('/l2/rollup',{});show($('rollup-result'),r);refresh()}
+async function createWallet(){const r=await j('/wallet/new',{method:'POST'});show($('wallet-result'),r);refresh()}
+async function signMsg(){const r=await post('/wallet/sign',{address:$('sign-addr').value,message:$('sign-msg').value});show($('sign-result'),r)}
+async function verifyMsg(){const r=await post('/wallet/verify',{address:$('verify-addr').value,message:$('verify-msg').value,signature:$('verify-sig').value});show($('verify-result'),r)}
+
+refresh();setInterval(refresh,3000);
+</script>
+</body>
+</html>

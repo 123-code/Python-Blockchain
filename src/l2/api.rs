@@ -93,6 +93,9 @@ pub async fn deposit(
         let _ = l2.create_rollup(&mut bc);
     }
 
+    let mut h = state.history.lock().await;
+    h.record("l2_deposit", &body.account, serde_json::json!({"amount": body.amount}), true);
+
     Ok((
         StatusCode::CREATED,
         Json(OkMsg {
@@ -119,6 +122,9 @@ pub async fn transfer(
         let mut bc = state.blockchain.lock().await;
         let _ = l2.create_rollup(&mut bc);
     }
+
+    let mut h = state.history.lock().await;
+    h.record("l2_transfer", &body.from, serde_json::json!({"to": body.to, "amount": body.amount}), true);
 
     Ok((
         StatusCode::CREATED,

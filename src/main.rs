@@ -1,7 +1,10 @@
 mod api;
 mod blockchain;
+mod explorer;
+mod history;
 mod l2;
 mod vm;
+mod wallet;
 
 use axum::{
     routing::{get, post},
@@ -11,8 +14,10 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use api::AppState;
+use history::History;
 use l2::engine::L2Engine;
 use vm::contract::ContractStore;
+use wallet::WalletStore;
 
 const L2_BATCH_SIZE: usize = 5;
 
@@ -22,9 +27,16 @@ async fn main() {
         blockchain: Mutex::new(blockchain::Blockchain::new()),
         l2: Mutex::new(L2Engine::new(L2_BATCH_SIZE)),
         contracts: Mutex::new(ContractStore::new()),
+        wallets: Mutex::new(WalletStore::new()),
+        history: Mutex::new(History::new()),
     });
 
     let app = Router::new()
+        // Explorer
+        .route("/", get(explorer::dashboard))
+        // Stats
+        .route("/stats", get(history::get_stats))
+        .route("/history", get(history::get_history))
         // L1
         .route("/chain", get(api::get_chain))
         .route("/mine", post(api::mine_block))
@@ -48,15 +60,21 @@ async fn main() {
             "/contract/:address/storage/:key",
             get(vm::api::get_storage),
         )
+        // Wallets
+        .route("/wallet/new", post(wallet::create_wallet))
+        .route("/wallet/sign", post(wallet::sign_message))
+        .route("/wallet/verify", post(wallet::verify_signature))
+        .route("/wallet/list", get(wallet::list_wallets))
         .with_state(state);
 
     let addr = "0.0.0.0:8080";
     println!("Blockchain node running on http://{}", addr);
+    println!("  Explorer:  http://{}/ (web dashboard)", addr);
     println!("  L1:        GET /chain, POST /mine, GET /validate");
     println!("  L2:        POST /l2/deposit, /l2/transfer, /l2/withdraw, /l2/rollup");
-    println!("             GET  /l2/balance/:acct, /l2/balances, /l2/pending, /l2/rollups");
     println!("  Contracts: POST /contract/deploy, /contract/call");
-    println!("             GET  /contract/list, /contract/:addr, /contract/:addr/storage/:key");
+    println!("  Wallets:   POST /wallet/new, /wallet/sign, /wallet/verify");
+    println!("  Stats:     GET /stats, /history");
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
