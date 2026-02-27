@@ -5,10 +5,12 @@ use tokio::sync::Mutex;
 
 use crate::blockchain::{Block, Blockchain};
 use crate::l2::engine::L2Engine;
+use crate::vm::contract::ContractStore;
 
 pub struct AppState {
     pub blockchain: Mutex<Blockchain>,
     pub l2: Mutex<L2Engine>,
+    pub contracts: Mutex<ContractStore>,
 }
 
 pub type SharedState = Arc<AppState>;
