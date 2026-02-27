@@ -1,25 +1,24 @@
 ## Cursor Cloud specific instructions
 
-This is a minimal educational Python project with two standalone scripts. No build system, test framework, or linter is configured.
+### Rust Blockchain (primary project)
 
-### Scripts
+Fully functional blockchain with REST API built in Rust using axum.
 
-- `Blockchain.py` — Blockchain class definition using Flask. Runs with `python3 Blockchain.py`. Note: the class is defined but never instantiated at module level; instantiation would hit runtime errors in `createblock()` and `ischainvalid()`.
-- `Caesar-Cipher/Cipher.py` — Caesar cipher encryption. Runs with `python3 Caesar-Cipher/Cipher.py`.
+**Build & run:** `cargo build && cargo run` (serves on `0.0.0.0:8080`)
 
-### Dependencies
+**Tests:** `cargo test` (5 unit tests covering genesis, mining, validation, tamper detection, PoW)
 
-Only external dependency is **Flask** (`pip install flask`). The update script handles this.
+**API endpoints:**
+- `GET /chain` — returns full blockchain
+- `POST /mine` — mines a new block (body: `{"data":"..."}`)
+- `GET /validate` — validates chain integrity
 
-### Running
+### Legacy Python scripts
 
-```
-python3 Blockchain.py
-python3 Caesar-Cipher/Cipher.py
-```
+- `Blockchain.py` — original Python blockchain sketch (has known code bugs, not fully functional)
+- `Caesar-Cipher/Cipher.py` — Caesar cipher, runs with `python3 Caesar-Cipher/Cipher.py`
 
 ### Notes
 
-- No `requirements.txt` exists; Flask is installed directly via pip.
-- No test suite, linter, or CI pipeline is configured.
-- `Blockchain.py` emits a `SyntaxWarning` on line 50 at import time — this is a known code issue, not an environment problem.
+- No linter or CI pipeline is configured.
+- The Rust project uses `Cargo.lock` for reproducible builds. The update script runs `pip install flask` for the Python scripts.
