@@ -30,7 +30,7 @@ async fn main() {
         .route("/l2/deposit", post(l2::api::deposit))
         .route("/l2/transfer", post(l2::api::transfer))
         .route("/l2/withdraw", post(l2::api::withdraw))
-        .route("/l2/balance/{account}", get(l2::api::get_balance))
+        .route("/l2/balance/:account", get(l2::api::get_balance))
         .route("/l2/balances", get(l2::api::get_balances))
         .route("/l2/pending", get(l2::api::get_pending))
         .route("/l2/rollup", post(l2::api::rollup))
